@@ -11,7 +11,7 @@ Margin computation:
   (passed in as product_costs dict).
 
 Usage:
-    from backend.adapters.transaction_mapper import map_transactions
+    from erpsight.backend.adapters.transaction_mapper import map_transactions
     transactions = map_transactions(raw_moves, raw_lines, product_costs)
 """
 
@@ -21,28 +21,10 @@ from collections import defaultdict
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from backend.models.domain.transaction import InvoiceLine, Transaction
-
-
-def _m2o_id(value: Any) -> Optional[int]:
-    if isinstance(value, (list, tuple)) and len(value) >= 1 and value[0]:
-        return int(value[0])
-    return None
-
-
-def _m2o_name(value: Any) -> str:
-    if isinstance(value, (list, tuple)) and len(value) >= 2:
-        return str(value[1])
-    return ""
-
-
-def _parse_dt(value: Any) -> Optional[datetime]:
-    if not value or value is False:
-        return None
-    try:
-        return datetime.fromisoformat(str(value))
-    except (ValueError, TypeError):
-        return None
+from erpsight.backend.adapters.mapper_utils import m2o_id as _m2o_id
+from erpsight.backend.adapters.mapper_utils import m2o_name as _m2o_name
+from erpsight.backend.adapters.mapper_utils import parse_dt as _parse_dt
+from erpsight.backend.models.domain.transaction import InvoiceLine, Transaction
 
 
 def _compute_avg_margin(lines: List[InvoiceLine]) -> float:

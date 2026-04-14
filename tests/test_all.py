@@ -23,18 +23,18 @@ import os
 import json
 from datetime import date, timedelta
 
-# Path resolution: tests/ → .. → ERPSight root → erpsight/
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "erpsight"))
+# Path resolution: tests/ → .. → ERPSight root
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from backend.config.logging_config import setup_logging
+from erpsight.backend.config.logging_config import setup_logging
 setup_logging("WARNING")   # tắt INFO logs trong quá trình test
 
-from backend.adapters.odoo_client import OdooClient
-from backend.adapters.order_mapper import map_orders
-from backend.adapters.inventory_mapper import map_inventories
-from backend.adapters.purchase_mapper import map_supplier_orders
-from backend.adapters.ticket_mapper import map_tickets
-from backend.adapters.transaction_mapper import map_transactions
+from erpsight.backend.adapters.odoo_client import OdooClient
+from erpsight.backend.adapters.order_mapper import map_orders
+from erpsight.backend.adapters.inventory_mapper import map_inventories
+from erpsight.backend.adapters.purchase_mapper import map_supplier_orders
+from erpsight.backend.adapters.ticket_mapper import map_tickets
+from erpsight.backend.adapters.transaction_mapper import map_transactions
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -660,15 +660,15 @@ try:
     wl_path = os.path.join(
         os.path.dirname(__file__), "..", "erpsight", "backend", "config", "whitelist.json"
     )
-    with open(wl_path) as f:
+    with open(wl_path, encoding="utf-8") as f:
         wl = json.load(f)
-    actions = wl.get("actions", [])
-    action_types = [a["action_type"] for a in actions]
+    # whitelist.json structure: {action_name: {risk_level, reversible, ...}}
+    action_types = list(wl.keys())
     expected = {"create_draft_po", "send_internal_alert", "create_activity_task"}
-    assert expected.issubset(set(action_types)), f"Missing actions: {expected - set(action_types)}"
-    ok(f"whitelist.json loaded: version={wl.get('version')}, {len(actions)} actions defined")
-    for a in actions:
-        info(f"  {a['action_type']}: risk={a['risk_level']} auto={a['auto_execute']} reversible={a['reversible']}")
+    assert expected == set(action_types), f"Mismatch: {expected.symmetric_difference(set(action_types))}"
+    ok(f"whitelist.json loaded: {len(action_types)} actions defined")
+    for action_type, details in wl.items():
+        info(f"  {action_type}: risk={details['risk_level']} reversible={details['reversible']}")
     ok(f"All 3 required actions present: {sorted(action_types)}")
 except Exception as e:
     fail("whitelist.json", e)
@@ -703,7 +703,7 @@ for init in init_files:
     else:
         size = os.path.getsize(fpath)
         if size > 10:
-            with open(fpath) as f:
+            with open(fpath, encoding="utf-8") as f:
                 content = f.read(80)
             print(f"  {RED}[BAD]{RESET}   {init} — {size} bytes: {content!r}")
             errors.append(f"corrupted {init} ({size} bytes)")

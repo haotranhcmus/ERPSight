@@ -7,7 +7,7 @@ Margin is computed from product.standard_price rather than any Odoo
 calculated field (Community edition has no built-in margin on SO).
 
 Usage:
-    from backend.adapters.order_mapper import map_orders
+    from erpsight.backend.adapters.order_mapper import map_orders
     orders = map_orders(raw_orders, raw_lines, product_costs)
 """
 
@@ -17,35 +17,10 @@ from collections import defaultdict
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from backend.models.domain.order import Order, OrderLine
-
-# ── helpers ────────────────────────────────────────────────────────────────────
-
-
-def _m2o_id(value: Any) -> Optional[int]:
-    """Extract integer id from an Odoo many2one field value ([id, name] or False)."""
-    if isinstance(value, (list, tuple)) and len(value) >= 1 and value[0]:
-        return int(value[0])
-    return None
-
-
-def _m2o_name(value: Any) -> str:
-    """Extract display name from an Odoo many2one field value."""
-    if isinstance(value, (list, tuple)) and len(value) >= 2:
-        return str(value[1])
-    return ""
-
-
-def _parse_dt(value: Any) -> Optional[datetime]:
-    """Parse Odoo datetime string (or False) into datetime."""
-    if not value or value is False:
-        return None
-    if isinstance(value, datetime):
-        return value
-    try:
-        return datetime.fromisoformat(str(value))
-    except (ValueError, TypeError):
-        return None
+from erpsight.backend.adapters.mapper_utils import m2o_id as _m2o_id
+from erpsight.backend.adapters.mapper_utils import m2o_name as _m2o_name
+from erpsight.backend.adapters.mapper_utils import parse_dt as _parse_dt
+from erpsight.backend.models.domain.order import Order, OrderLine
 
 
 # ── public API ─────────────────────────────────────────────────────────────────

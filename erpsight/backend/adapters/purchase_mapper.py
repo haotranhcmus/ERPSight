@@ -4,7 +4,7 @@ backend/adapters/purchase_mapper.py
 Maps raw Odoo purchase.order + purchase.order.line dicts → SupplierOrder domain model.
 
 Usage:
-    from backend.adapters.purchase_mapper import map_supplier_orders
+    from erpsight.backend.adapters.purchase_mapper import map_supplier_orders
     pos = map_supplier_orders(raw_orders, raw_lines)
 """
 
@@ -14,28 +14,10 @@ from collections import defaultdict
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from backend.models.domain.supplier_order import POLine, SupplierOrder
-
-
-def _m2o_id(value: Any) -> Optional[int]:
-    if isinstance(value, (list, tuple)) and len(value) >= 1 and value[0]:
-        return int(value[0])
-    return None
-
-
-def _m2o_name(value: Any) -> str:
-    if isinstance(value, (list, tuple)) and len(value) >= 2:
-        return str(value[1])
-    return ""
-
-
-def _parse_dt(value: Any) -> Optional[datetime]:
-    if not value or value is False:
-        return None
-    try:
-        return datetime.fromisoformat(str(value))
-    except (ValueError, TypeError):
-        return None
+from erpsight.backend.adapters.mapper_utils import m2o_id as _m2o_id
+from erpsight.backend.adapters.mapper_utils import m2o_name as _m2o_name
+from erpsight.backend.adapters.mapper_utils import parse_dt as _parse_dt
+from erpsight.backend.models.domain.supplier_order import POLine, SupplierOrder
 
 
 def map_po_line(raw: Dict[str, Any], fallback_po_id: int) -> POLine:

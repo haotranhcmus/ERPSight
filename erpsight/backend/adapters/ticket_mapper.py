@@ -7,42 +7,22 @@ Compatible with OCA helpdesk_mgmt v17.
 date_closed may be absent depending on OCA version — handled gracefully.
 
 Usage:
-    from backend.adapters.ticket_mapper import map_tickets
+    from erpsight.backend.adapters.ticket_mapper import map_tickets
     tickets = map_tickets(raw_tickets)
 """
 
 from __future__ import annotations
-
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from backend.models.domain.customer_ticket import CustomerTicket
-
-
-def _m2o_id(value: Any) -> Optional[int]:
-    if isinstance(value, (list, tuple)) and len(value) >= 1 and value[0]:
-        return int(value[0])
-    return None
-
-
-def _m2o_name(value: Any) -> str:
-    if isinstance(value, (list, tuple)) and len(value) >= 2:
-        return str(value[1])
-    return ""
-
-
-def _parse_dt(value: Any) -> Optional[datetime]:
-    if not value or value is False:
-        return None
-    try:
-        return datetime.fromisoformat(str(value))
-    except (ValueError, TypeError):
-        return None
+from erpsight.backend.adapters.mapper_utils import m2o_id as _m2o_id
+from erpsight.backend.adapters.mapper_utils import m2o_name as _m2o_name
+from erpsight.backend.adapters.mapper_utils import parse_dt as _parse_dt
+from erpsight.backend.models.domain.customer_ticket import CustomerTicket
 
 
 def map_ticket(raw: Dict[str, Any]) -> CustomerTicket:
     create_dt = _parse_dt(raw.get("create_date")) or datetime.now()
-    # OCA helpdesk_mgmt v17 uses 'closed_date' (not 'date_closed')
     close_dt = _parse_dt(raw.get("closed_date"))
     last_stage_dt = _parse_dt(raw.get("last_stage_update"))
 

@@ -16,7 +16,7 @@ Idempotency notes:
   - Key format: sha256(action_type + sorted JSON params)[:32]
 
 Usage:
-    from backend.adapters.odoo_client import OdooClient
+    from erpsight.backend.adapters.odoo_client import OdooClient
     client = OdooClient()
     orders = client.get_sale_orders(date_from="2026-03-01")
 """
@@ -31,7 +31,7 @@ import xmlrpc.client
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from backend.config.settings import settings
+from erpsight.backend.config.settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +47,6 @@ _SALE_LINE_FIELDS = [
     "price_unit", "price_subtotal", "discount",
 ]
 
-# Odoo 17: stock.quant uses 'quantity' (not qty_on_hand — that's on product.product)
 _STOCK_QUANT_FIELDS = [
     "id", "product_id", "quantity", "reserved_quantity", "location_id", "in_date",
 ]
@@ -73,7 +72,6 @@ _PURCHASE_LINE_FIELDS = [
     "price_unit", "price_subtotal", "date_planned",
 ]
 
-# OCA helpdesk_mgmt v17 — confirmed fields: closed_date, closed, last_stage_update
 _HELPDESK_TICKET_FIELDS = [
     "id", "name", "description", "partner_id",
     "stage_id", "priority", "user_id", "team_id",
@@ -89,23 +87,36 @@ _PARTNER_FIELDS = [
 ]
 
 
+class _TimeoutTransport(xmlrpc.client.Transport):
+    """XML-RPC transport that enforces a per-call socket timeout."""
+
+    def __init__(self, timeout: int) -> None:
+        super().__init__(use_builtin_types=True)
+        self._timeout = timeout
+
+    def make_connection(self, host: str):  # type: ignore[override]
+        conn = super().make_connection(host)
+        conn.timeout = self._timeout
+        return conn
+
+
 class OdooClient:
     """XML-RPC client for Odoo with retry, idempotency, and field whitelisting."""
 
     def __init__(self) -> None:
         self._uid: Optional[int] = None
+        _transport = _TimeoutTransport(settings.ODOO_REQUEST_TIMEOUT)
         self._common = xmlrpc.client.ServerProxy(
             f"{settings.ODOO_URL}/xmlrpc/2/common",
+            transport=_transport,
             allow_none=True,
         )
         self._models = xmlrpc.client.ServerProxy(
             f"{settings.ODOO_URL}/xmlrpc/2/object",
+            transport=_TimeoutTransport(settings.ODOO_REQUEST_TIMEOUT),
             allow_none=True,
         )
-        # In-memory idempotency store. AI team will replace this with
-        # a Firebase lookup in services/firebase_store.py.
         self._idempotency_log: Dict[str, str] = {}
-        # Internal stock location ids (fetched once and cached)
         self._internal_location_ids: Optional[List[int]] = None
 
     # ── Authentication ────────────────────────────────────────────────────────
@@ -166,7 +177,7 @@ class OdooClient:
                 # Application-level fault (e.g. wrong field, access denied).
                 # No point retrying — re-raise immediately.
                 raise
-            except Exception as exc:
+            except (OSError, ConnectionError, TimeoutError) as exc:
                 last_exc = exc
                 wait = 2 ** (attempt - 1)   # 1s, 2s, 4s
                 logger.warning(
@@ -309,10 +320,6 @@ class OdooClient:
     ) -> List[Dict[str, Any]]:
         """
         Fetch current stock levels.
-
-        Note: Odoo 17 stock.quant uses 'quantity' (not 'qty_on_hand').
-        Filtering on quantity > 0 in domain is supported; location_id.usage is
-        NOT supported via XML-RPC domain — location ids are pre-fetched instead.
 
         Args:
             product_ids:   filter to specific products; None = all
@@ -647,8 +654,14 @@ class OdooClient:
         if date_deadline is None:
             date_deadline = datetime.now().strftime("%Y-%m-%d")
 
+        ir_model_records = self.search_read(
+            "ir.model", [("model", "=", model)], ["id"], limit=1
+        )
+        if not ir_model_records:
+            raise ValueError(f"create_activity: model '{model}' not found in ir.model")
+
         vals: Dict[str, Any] = {
-            "res_model": model,
+            "res_model_id": ir_model_records[0]["id"],
             "res_id": res_id,
             "summary": summary,
             "note": note,
@@ -668,8 +681,8 @@ class OdooClient:
             )
             if types:
                 vals["activity_type_id"] = types[0]["id"]
-        except Exception:
-            pass   # missing activity type is non-fatal
+        except xmlrpc.client.Fault:
+            pass
 
         activity_id: int = self._create("mail.activity", vals)
         logger.info(
@@ -699,6 +712,6 @@ class OdooClient:
         try:
             self.authenticate()
             return True
-        except Exception as exc:
+        except (xmlrpc.client.Fault, OSError, RuntimeError) as exc:
             logger.error("Odoo connection check failed: %s", exc)
             return False

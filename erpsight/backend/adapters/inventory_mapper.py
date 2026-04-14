@@ -7,41 +7,22 @@ avg_daily_sales and days_of_stock_remaining are left at defaults (0.0 / None)
 and populated later by SentinelAgent.compute_derived_metrics().
 
 Usage:
-    from backend.adapters.inventory_mapper import map_inventories
+    from erpsight.backend.adapters.inventory_mapper import map_inventories
     inventories = map_inventories(raw_quants)
 """
 
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from backend.models.domain.inventory import Inventory
-
-
-def _m2o_id(value: Any) -> Optional[int]:
-    if isinstance(value, (list, tuple)) and len(value) >= 1 and value[0]:
-        return int(value[0])
-    return None
-
-
-def _m2o_name(value: Any) -> str:
-    if isinstance(value, (list, tuple)) and len(value) >= 2:
-        return str(value[1])
-    return ""
-
-
-def _parse_dt(value: Any) -> Optional[datetime]:
-    if not value or value is False:
-        return None
-    try:
-        return datetime.fromisoformat(str(value))
-    except (ValueError, TypeError):
-        return None
+from erpsight.backend.adapters.mapper_utils import m2o_id as _m2o_id
+from erpsight.backend.adapters.mapper_utils import m2o_name as _m2o_name
+from erpsight.backend.adapters.mapper_utils import parse_dt as _parse_dt
+from erpsight.backend.models.domain.inventory import Inventory
 
 
 def map_inventory(raw: Dict[str, Any]) -> Inventory:
-    qty = float(raw.get("quantity") or 0)       # Odoo 17: field is 'quantity'
+    qty = float(raw.get("quantity") or 0)
     reserved = float(raw.get("reserved_quantity") or 0)
     return Inventory(
         quant_id=int(raw["id"]),
