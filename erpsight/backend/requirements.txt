@@ -1,0 +1,27 @@
+# ── Core Framework ─────────────────────────────────────────────────────────────
+fastapi>=0.111
+uvicorn[standard]>=0.29
+pydantic>=2.5
+pydantic-settings>=2.5
+
+# ── Scheduling ────────────────────────────────────────────────────────────────
+apscheduler>=3.10
+
+# ── ML / Detection ────────────────────────────────────────────────────────────
+scikit-learn>=1.4
+numpy>=1.26
+pandas>=2.2
+
+# ── AI / LLM  (AI team configures; listed here for completeness) ──────────────
+langchain>=0.2
+langchain-google-genai>=1.0
+google-generativeai>=0.5
+faiss-cpu>=1.8
+
+# ── Firebase  (AI team configures) ────────────────────────────────────────────
+firebase-admin>=6.5
+
+# ── Utilities ─────────────────────────────────────────────────────────────────
+python-dateutil>=2.9
+python-dotenv>=1.0
+httpx>=0.27
