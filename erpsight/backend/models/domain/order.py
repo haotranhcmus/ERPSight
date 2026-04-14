@@ -33,6 +33,5 @@ class Order(BaseModel):
     partner_name: str
     date_order: datetime
     amount_total: float
-    amount_untaxed: float
     state: str                  # draft | sent | sale | done | cancel
     lines: List[OrderLine] = Field(default_factory=list)

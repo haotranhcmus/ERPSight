@@ -15,20 +15,17 @@ from pydantic import BaseModel
 
 class CustomerTicket(BaseModel):
     ticket_id: int
+    number: str = ""            # ticket reference e.g. "HT00001" (_rec_name)
     name: str
     description: str = ""
     partner_id: Optional[int] = None
     partner_name: str = ""
-    stage_id: Optional[int] = None
     stage_name: str = ""
-    priority: str = "0"         # "0" normal | "1" high | "2" very high | "3" critical
+    priority: str = "0"         # "0" low | "1" medium | "2" high | "3" very high
     user_id: Optional[int] = None
     user_name: str = ""
-    team_id: Optional[int] = None
-    team_name: str = ""
     create_date: datetime
     # OCA helpdesk_mgmt v17 close fields
     closed_date: Optional[datetime] = None     # field: closed_date
     closed: bool = False                        # field: closed (boolean)
     last_stage_update: Optional[datetime] = None
-    resolution_days: Optional[float] = None    # computed: (closed_date - create_date) in days

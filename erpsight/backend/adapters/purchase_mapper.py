@@ -28,7 +28,6 @@ def map_po_line(raw: Dict[str, Any], fallback_po_id: int) -> POLine:
         product_name=_m2o_name(raw.get("product_id")),
         quantity=float(raw.get("product_qty") or 0),
         price_unit=float(raw.get("price_unit") or 0),
-        price_subtotal=float(raw.get("price_subtotal") or 0),
         date_planned=_parse_dt(raw.get("date_planned")),
     )
 
@@ -44,8 +43,6 @@ def map_supplier_order(
         partner_id=_m2o_id(raw.get("partner_id")) or 0,
         partner_name=_m2o_name(raw.get("partner_id")),
         date_order=_parse_dt(raw.get("date_order")) or datetime.now(),
-        amount_total=float(raw.get("amount_total") or 0),
-        amount_untaxed=float(raw.get("amount_untaxed") or 0),
         state=raw.get("state", ""),
         lines=[map_po_line(l, po_id) for l in lines],
     )

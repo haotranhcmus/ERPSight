@@ -64,7 +64,6 @@ def map_order(
         partner_name=_m2o_name(raw.get("partner_id")),
         date_order=_parse_dt(raw.get("date_order")) or datetime.now(),
         amount_total=float(raw.get("amount_total") or 0),
-        amount_untaxed=float(raw.get("amount_untaxed") or 0),
         state=raw.get("state", ""),
         lines=[map_order_line(l, order_id, product_costs) for l in lines],
     )

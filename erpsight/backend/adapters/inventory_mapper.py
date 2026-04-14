@@ -13,11 +13,10 @@ Usage:
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from erpsight.backend.adapters.mapper_utils import m2o_id as _m2o_id
 from erpsight.backend.adapters.mapper_utils import m2o_name as _m2o_name
-from erpsight.backend.adapters.mapper_utils import parse_dt as _parse_dt
 from erpsight.backend.models.domain.inventory import Inventory
 
 
@@ -33,7 +32,6 @@ def map_inventory(raw: Dict[str, Any]) -> Inventory:
         available_qty=max(qty - reserved, 0.0),
         location_id=_m2o_id(raw.get("location_id")) or 0,
         location_name=_m2o_name(raw.get("location_id")),
-        last_movement=_parse_dt(raw.get("in_date")),
     )
 
 

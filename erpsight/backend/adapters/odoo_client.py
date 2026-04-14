@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 
 _SALE_ORDER_FIELDS = [
     "id", "name", "partner_id", "date_order",
-    "amount_total", "amount_untaxed", "state", "order_line",
+    "amount_total", "state", "order_line",
 ]
 
 _SALE_LINE_FIELDS = [
@@ -48,33 +48,22 @@ _SALE_LINE_FIELDS = [
 ]
 
 _STOCK_QUANT_FIELDS = [
-    "id", "product_id", "quantity", "reserved_quantity", "location_id", "in_date",
-]
-
-_INVOICE_FIELDS = [
-    "id", "name", "partner_id", "invoice_date",
-    "invoice_line_ids", "state", "move_type",
-    "amount_total", "amount_untaxed",
-]
-
-_INVOICE_LINE_FIELDS = [
-    "id", "move_id", "product_id", "price_unit",
-    "quantity", "price_subtotal", "discount",
+    "id", "product_id", "quantity", "reserved_quantity", "location_id",
 ]
 
 _PURCHASE_ORDER_FIELDS = [
     "id", "name", "partner_id", "date_order",
-    "amount_total", "amount_untaxed", "state", "order_line",
+    "state", "order_line",
 ]
 
 _PURCHASE_LINE_FIELDS = [
     "id", "order_id", "product_id", "product_qty",
-    "price_unit", "price_subtotal", "date_planned",
+    "price_unit", "date_planned",
 ]
 
 _HELPDESK_TICKET_FIELDS = [
-    "id", "name", "description", "partner_id",
-    "stage_id", "priority", "user_id", "team_id",
+    "id", "number", "name", "description", "partner_id",
+    "stage_id", "priority", "user_id",
     "create_date", "closed_date", "closed", "last_stage_update",
 ]
 
@@ -341,50 +330,6 @@ class OdooClient:
         if loc_ids:
             domain.append(("location_id", "in", loc_ids))
         return self.search_read("stock.quant", domain, _STOCK_QUANT_FIELDS)
-
-    # ── READ: Invoices (account.move) ─────────────────────────────────────────
-
-    def get_invoices(
-        self,
-        date_from: Optional[str] = None,
-        date_to: Optional[str] = None,
-        partner_id: Optional[int] = None,
-        move_types: Optional[List[str]] = None,
-        limit: int = 500,
-    ) -> List[Dict[str, Any]]:
-        """
-        Fetch posted invoices/bills.
-
-        Args:
-            move_types: defaults to ["out_invoice", "in_invoice"]
-        """
-        domain: List[Any] = [("state", "=", "posted")]
-        if date_from:
-            domain.append(("invoice_date", ">=", date_from))
-        if date_to:
-            domain.append(("invoice_date", "<=", date_to))
-        if partner_id:
-            domain.append(("partner_id", "=", partner_id))
-        domain.append(
-            ("move_type", "in", move_types or ["out_invoice", "in_invoice"])
-        )
-        return self.search_read(
-            "account.move", domain, _INVOICE_FIELDS,
-            limit=limit, order="invoice_date desc",
-        )
-
-    def get_invoice_lines(self, invoice_ids: List[int]) -> List[Dict[str, Any]]:
-        """Fetch product lines for the given account.move ids (excludes tax/section lines)."""
-        if not invoice_ids:
-            return []
-        return self.search_read(
-            "account.move.line",
-            [
-                ("move_id", "in", invoice_ids),
-                ("display_type", "=", "product"),
-            ],
-            _INVOICE_LINE_FIELDS,
-        )
 
     # ── READ: Purchase Orders ─────────────────────────────────────────────────
 

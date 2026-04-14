@@ -20,7 +20,6 @@ class POLine(BaseModel):
     product_name: str
     quantity: float
     price_unit: float
-    price_subtotal: float
     date_planned: Optional[datetime] = None   # expected delivery date
 
 
@@ -30,7 +29,5 @@ class SupplierOrder(BaseModel):
     partner_id: int
     partner_name: str
     date_order: datetime
-    amount_total: float
-    amount_untaxed: float
     state: str                  # draft | sent | purchase | done | cancel
     lines: List[POLine] = Field(default_factory=list)
