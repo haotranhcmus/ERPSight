@@ -1,0 +1,27 @@
+{
+  "create_draft_po": {
+    "description": "Tạo Purchase Order nháp trong Odoo để bổ sung hàng tồn kho",
+    "risk_level": "medium",
+    "reversible": true,
+    "undo_handler": "cancel_purchase_order",
+    "auto_execute_min_confidence": 0.85,
+    "notes": "Chỉ tạo ở trạng thái draft — chưa confirm, chưa gửi supplier"
+  },
+  "send_internal_alert": {
+    "description": "Gửi thông báo nội bộ vào chatter của record Odoo",
+    "risk_level": "low",
+    "reversible": false,
+    "undo_handler": null,
+    "compensating_action": "send_correction_note",
+    "auto_execute_min_confidence": 0.7,
+    "notes": "Không thể undo — nhưng có thể gửi note đính chính"
+  },
+  "create_activity_task": {
+    "description": "Tạo mail.activity (task nhắc nhở) trong Odoo",
+    "risk_level": "low",
+    "reversible": true,
+    "undo_handler": "delete_activity",
+    "auto_execute_min_confidence": 0.7,
+    "notes": "Activity có thể bị xóa hoàn toàn bằng unlink"
+  }
+}

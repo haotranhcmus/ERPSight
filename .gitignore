@@ -1,0 +1,77 @@
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+# Giữ lại file example để teammate biết cần setup những biến nào
+!.env.example
+
+# Bỏ qua các file JSON chứa credentials của GCP/Firebase
+*serviceAccountKey*.json
+*firebase-adminsdk*.json
+*credentials*.json
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environments
+venv/
+env/
+.venv/
+env.bak/
+venv.bak/
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+
+# Logs của NPM/Yarn
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Caches
+.eslintcache
+frontend/.vite/
+
+# Bỏ qua các file backup/persistence của FAISS (nếu bạn save local trước khi đưa lên cloud)
+*.index
+*.faiss
+*.pkl
+
+# Bỏ qua các file log hệ thống sinh ra trong quá trình chạy
+*.log
+logs/
+
+# Bỏ qua các file data synthetic xuất ra (nếu có dùng script dump ra CSV/Excel)
+*.csv
+*.xlsx
+scripts/seed_data/__pycache__/
+
+# MacOS / Ubuntu
+.DS_Store
+.AppleDouble
+.LSOverride
+*~
+.Trash-*
+
+# VSCode / JetBrains (PyCharm, WebStorm)
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+
+local_docs/
