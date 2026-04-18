@@ -12,7 +12,15 @@ class InsightReport(BaseModel):
     observation: str = Field(..., description="Tầng 1: Quan sát tổng quan về dữ liệu bất thường phát hiện được.")
     evidence: List[str] = Field(..., description="Tầng 2: Danh sách các bằng chứng cụ thể rút ra từ Odoo.")
     hypothesis: str = Field(..., description="Tầng 3: Giả thuyết nguyên nhân liên module (tiếng Việt).")
-    suggested_action: str = Field(..., description="Tầng 4: Đề xuất hành động khắc phục.")
+    suggested_actions: List[str] = Field(
+        default_factory=list,
+        description=(
+            "Tầng 4: Danh sách các action code cần thực hiện, theo thứ tự ưu tiên. "
+            "Mỗi phần tử là một action_type hợp lệ trong whitelist, ví dụ: "
+            "['send_internal_alert', 'create_activity_task', 'create_purchase_order']. "
+            "Luôn trả về ít nhất 1 action."
+        ),
+    )
 
 class ActionRequest(BaseModel):
     action_type: str = Field(..., description="LOW, MEDIUM, HIGH để quyết định phê duyệt.")

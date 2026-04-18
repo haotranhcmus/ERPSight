@@ -34,6 +34,17 @@ class Settings(BaseSettings):
 
     # ── AI / LLM (optional — configured by AI team) ──────────────────────────
     GEMINI_API_KEY: Optional[str] = None
+    # gemini-2.0-flash  → free tier, 1500 req/day (recommended)
+    # gemini-1.5-flash  → free tier, backup
+    # gemini-2.5-pro    → paid only (free tier limit = 0)
+    GEMINI_MODEL: str = "gemini-2.0-flash"
+
+    # Groq (free tier, 14 400 req/day — recommended alternative to Gemini)
+    # Sign up free: https://console.groq.com → API Keys → Create key
+    # Paste key here and Gemini will NOT be used (Groq takes priority)
+    # Best model: llama-3.3-70b-versatile (smart + fast)
+    GROQ_API_KEY: Optional[str] = None
+    GROQ_MODEL: str = "llama-3.3-70b-versatile"
 
     # ── Firebase (optional — configured by AI team) ───────────────────────────
     FIREBASE_CREDENTIALS_PATH: Optional[str] = None

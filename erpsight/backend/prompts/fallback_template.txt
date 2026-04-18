@@ -1,0 +1,19 @@
+Phân tích bất thường: {anomaly_type}
+
+Thông tin:
+- Sản phẩm: {product_name} (SKU: {product_sku})
+- Khách hàng: {partner_name}
+- Chỉ số: {metric} = {metric_value} (ngưỡng: {threshold})
+- Z-Score: {z_score} | Severity: {severity}
+
+Observation:
+{summary}
+
+Evidence:
+{evidence}
+
+Hypothesis:
+{root_cause}
+
+Recommended Actions:
+{actions}
