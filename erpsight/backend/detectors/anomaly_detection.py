@@ -166,7 +166,6 @@ class ERPAnomalyDetector:
 
         customer_df = build_customer_features(orders_df)
 
-        # 🔥 IMPORTANT: merge ticket info into customer_df
         if not tickets_df.empty:
             ticket_info = tickets_df.groupby("partner_id")["create_date"].max().reset_index()
             ticket_info.columns = ["entity_id", "last_ticket_date"]
