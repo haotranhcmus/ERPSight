@@ -95,17 +95,22 @@ def fetch_supplier_orders(
     partner_id: Optional[int] = None,
     states: Optional[List[str]] = None,
     limit: int = 500,
+    pending_only: bool = False,
 ) -> List[SupplierOrder]:
     """
     Fetch and map purchase orders to SupplierOrder domain models.
 
     Args:
-        client:     active OdooClient instance
-        date_from:  ISO date "YYYY-MM-DD" (inclusive)
-        date_to:    ISO date "YYYY-MM-DD" (inclusive)
-        partner_id: filter by supplier id
-        states:     defaults to all except cancelled
-        limit:      max records (0 = all)
+        client:       active OdooClient instance
+        date_from:    ISO date "YYYY-MM-DD" (inclusive)
+        date_to:      ISO date "YYYY-MM-DD" (inclusive)
+        partner_id:   filter by supplier id
+        states:       defaults to all except cancelled
+        limit:        max records (0 = all)
+        pending_only: when True, excludes POs where receipt_status='full'.
+                      Use for stockout/pending-receipt scans — in Odoo 17,
+                      confirmed POs remain in 'purchase' state even after
+                      full receipt, so state alone is not enough.
     """
     raw_pos = client.get_purchase_orders(
         date_from=date_from,
@@ -113,6 +118,7 @@ def fetch_supplier_orders(
         partner_id=partner_id,
         states=states,
         limit=limit,
+        exclude_fully_received=pending_only,
     )
     if not raw_pos:
         return []
