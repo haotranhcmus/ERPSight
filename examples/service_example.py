@@ -43,15 +43,15 @@ def main() -> None:
     sup_orders  = data_service.fetch_supplier_orders(client)
     tickets     = data_service.fetch_tickets(client)
 
-    # print(f"  orders:       {len(orders)}")
-    # print(f"  inventories:  {len(inventories)}")
-    # print(f"  sup_orders:   {len(sup_orders)}")
-    # print(f"  tickets:      {len(tickets)}")
+    print(f"  orders:       {len(orders)}")
+    print(f"  inventories:  {len(inventories)}")
+    print(f"  sup_orders:   {len(sup_orders)}")
+    print(f"  tickets:      {len(tickets)}")
 
-    # print(orders[0])
+    print(orders[0])
     # print(inventories[0])
     # print(sup_orders[0])
-    print(tickets[0])
+    # print(tickets[0])
 
 
 if __name__ == "__main__":

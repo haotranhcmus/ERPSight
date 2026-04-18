@@ -53,7 +53,7 @@ _STOCK_QUANT_FIELDS = [
 
 _PURCHASE_ORDER_FIELDS = [
     "id", "name", "partner_id", "date_order",
-    "state", "order_line",
+    "state", "receipt_status", "order_line",
 ]
 
 _PURCHASE_LINE_FIELDS = [
@@ -340,12 +340,17 @@ class OdooClient:
         partner_id: Optional[int] = None,
         states: Optional[List[str]] = None,
         limit: int = 500,
+        exclude_fully_received: bool = False,
     ) -> List[Dict[str, Any]]:
         """
         Fetch purchase orders.
 
         Args:
             states: defaults to all except cancelled ["draft","sent","purchase","done"]
+            exclude_fully_received: when True, skips POs where receipt_status='full'.
+                Use this when scanning for pending incoming stock — in Odoo 17,
+                a confirmed PO stays in 'purchase' state even after all goods are
+                received (receipt_status changes to 'full' instead of state→'done').
         """
         domain: List[Any] = []
         if date_from:
@@ -358,6 +363,8 @@ class OdooClient:
             domain.append(("state", "in", states))
         else:
             domain.append(("state", "not in", ["cancel"]))
+        if exclude_fully_received:
+            domain.append(("receipt_status", "!=", "full"))
         return self.search_read(
             "purchase.order", domain, _PURCHASE_ORDER_FIELDS,
             limit=limit, order="date_order desc",
