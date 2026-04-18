@@ -1,12 +1,4 @@
 {
-  "create_draft_po": {
-    "description": "Tạo Purchase Order nháp trong Odoo để bổ sung hàng tồn kho",
-    "risk_level": "medium",
-    "reversible": true,
-    "undo_handler": "cancel_purchase_order",
-    "auto_execute_min_confidence": 0.85,
-    "notes": "Chỉ tạo ở trạng thái draft — chưa confirm, chưa gửi supplier"
-  },
   "send_internal_alert": {
     "description": "Gửi thông báo nội bộ vào chatter của record Odoo",
     "risk_level": "low",
@@ -14,14 +6,308 @@
     "undo_handler": null,
     "compensating_action": "send_correction_note",
     "auto_execute_min_confidence": 0.7,
-    "notes": "Không thể undo — nhưng có thể gửi note đính chính"
+    "scenarios": ["KB1", "KB2", "KB3"],
+    "params_schema": {
+      "res_model": { "type": "string", "required": true },
+      "res_id_lookup": { "type": "object", "required": true },
+      "subject": { "type": "string", "required": true },
+      "message_body": { "type": "string", "required": true },
+      "notify_user_logins": { "type": "list[string]", "required": true },
+      "attachment_context": { "type": "string", "required": false }
+    }
   },
   "create_activity_task": {
-    "description": "Tạo mail.activity (task nhắc nhở) trong Odoo",
+    "description": "Tạo mail.activity (task nhắc nhở) trong Odoo trên một record cụ thể",
     "risk_level": "low",
     "reversible": true,
     "undo_handler": "delete_activity",
     "auto_execute_min_confidence": 0.7,
-    "notes": "Activity có thể bị xóa hoàn toàn bằng unlink"
+    "scenarios": ["KB1", "KB2"],
+    "params_schema": {
+      "res_model": { "type": "string", "required": true },
+      "res_id_lookup": { "type": "object", "required": true },
+      "activity_type_name": { "type": "string", "required": true },
+      "summary": { "type": "string", "required": true },
+      "note": { "type": "string", "required": true },
+      "date_deadline": { "type": "string", "required": true },
+      "assigned_to_login": { "type": "string", "required": true }
+    }
+  },
+  "create_reengagement_activity": {
+    "description": "Tạo activity Phone Call trên contact khách VIP với context churn risk",
+    "risk_level": "low",
+    "reversible": true,
+    "undo_handler": "delete_activity",
+    "auto_execute_min_confidence": 0.7,
+    "scenarios": ["KB3"],
+    "params_schema": {
+      "partner_name": { "type": "string", "required": true },
+      "summary": { "type": "string", "required": true },
+      "date_deadline": { "type": "string", "required": true },
+      "assigned_to_login": { "type": "string", "required": true },
+      "note": { "type": "string", "required": true },
+      "last_order_date": { "type": "string", "required": true },
+      "silent_days": { "type": "int", "required": true },
+      "has_recent_complaint": { "type": "bool", "required": true },
+      "suggested_offer": { "type": "string", "required": false }
+    }
+  },
+  "flag_product_for_price_review": {
+    "description": "Auto-post internal note trên product template ghi nhận AI đã phát hiện margin issue. Bước đệm trước khi user approve update_sale_price.",
+    "risk_level": "low",
+    "reversible": true,
+    "undo_handler": "remove_flag_note",
+    "informational_only": true,
+    "note": "Chạy tự động cùng với send_margin_alert. Không cần user action — action thực thi là update_sale_price.",
+    "auto_execute_min_confidence": 0.7,
+    "scenarios": ["KB2"],
+    "params_schema": {
+      "product_sku": { "type": "string", "required": true },
+      "current_cost": { "type": "float", "required": true },
+      "current_sale_price": { "type": "float", "required": true },
+      "current_margin_pct": { "type": "float", "required": true },
+      "suggested_new_sale_price": { "type": "float", "required": true },
+      "target_margin_pct": { "type": "float", "required": true },
+      "note": { "type": "string", "required": true }
+    }
+  },
+  "send_margin_alert": {
+    "description": "Gửi cảnh báo margin chuyên biệt cho KB2, bao gồm bảng so sánh giá nhập cũ/mới",
+    "risk_level": "low",
+    "reversible": false,
+    "undo_handler": null,
+    "compensating_action": "send_correction_note",
+    "auto_execute_min_confidence": 0.75,
+    "scenarios": ["KB2"],
+    "params_schema": {
+      "product_sku": { "type": "string", "required": true },
+      "old_purchase_price": { "type": "float", "required": true },
+      "new_purchase_price": { "type": "float", "required": true },
+      "price_change_pct": { "type": "float", "required": true },
+      "current_sale_price": { "type": "float", "required": true },
+      "current_margin_pct": { "type": "float", "required": true },
+      "projected_daily_loss": { "type": "float", "required": true },
+      "notify_user_logins": { "type": "list[string]", "required": true }
+    }
+  },
+  "send_churn_risk_alert": {
+    "description": "Gửi cảnh báo churn chuyên biệt cho KB3, kèm order history và ticket context",
+    "risk_level": "low",
+    "reversible": false,
+    "undo_handler": null,
+    "compensating_action": "send_correction_note",
+    "auto_execute_min_confidence": 0.75,
+    "scenarios": ["KB3"],
+    "params_schema": {
+      "partner_name": { "type": "string", "required": true },
+      "last_order_date": { "type": "string", "required": true },
+      "silent_days": { "type": "int", "required": true },
+      "avg_order_cycle": { "type": "float", "required": true },
+      "overdue_factor": { "type": "float", "required": true },
+      "complaint_context": { "type": "string", "required": false },
+      "notify_user_logins": { "type": "list[string]", "required": true }
+    }
+  },
+  "create_purchase_order": {
+    "description": "Tạo Purchase Order đã xác nhận từ ERPSight. User review + sửa params ngay trên approval panel, không cần vào Odoo.",
+    "risk_level": "medium",
+    "reversible": true,
+    "undo_handler": "cancel_purchase_order",
+    "auto_execute_min_confidence": 0.85,
+    "requires_approval": true,
+    "scenarios": ["KB1"],
+    "constraints": {
+      "max_qty": 500,
+      "max_price_increase_pct": 20
+    },
+    "approval_panel": {
+      "title": "Tạo Purchase Order – {product_name}",
+      "summary_template": "AI đề xuất đặt {qty} cái {product_name} từ {supplier_name} ({price_unit_fmt}đ/cái = {total_fmt}đ). Lý do: tồn kho còn {days_remaining} ngày.",
+      "editable_fields": [
+        {
+          "name": "qty",
+          "label": "Số lượng đặt",
+          "type": "int",
+          "unit": "cái",
+          "min": 1,
+          "max": 500,
+          "ai_suggested": true
+        },
+        {
+          "name": "price_unit",
+          "label": "Đơn giá nhập",
+          "type": "float",
+          "unit": "đ",
+          "ai_suggested": true,
+          "note": "Không được vượt quá 120% giá PO gần nhất"
+        },
+        {
+          "name": "date_planned",
+          "label": "Ngày nhận hàng dự kiến",
+          "type": "date",
+          "ai_suggested": true
+        },
+        {
+          "name": "supplier_name",
+          "label": "Nhà cung cấp",
+          "type": "string",
+          "ai_suggested": true
+        }
+      ],
+      "display_fields": [
+        { "name": "product_sku", "label": "SKU" },
+        { "name": "current_stock", "label": "Tồn kho hiện tại" },
+        { "name": "days_remaining", "label": "Ngày tồn kho còn lại" },
+        { "name": "avg_daily_sales", "label": "Tốc độ bán (TB/ngày)" },
+        {
+          "name": "total_cost",
+          "label": "Tổng giá trị PO",
+          "computed": "qty * price_unit"
+        }
+      ]
+    },
+    "params_schema": {
+      "product_sku": { "type": "string", "required": true },
+      "supplier_name": { "type": "string", "required": true },
+      "qty": { "type": "int", "required": true },
+      "price_unit": { "type": "float", "required": true },
+      "date_planned": { "type": "string", "required": true },
+      "note": { "type": "string", "required": true }
+    }
+  },
+  "update_sale_price": {
+    "description": "Cập nhật trực tiếp giá bán (list_price) của sản phẩm trong Odoo từ ERPSight. User edit giá ngay trên panel, không cần vào Odoo.",
+    "risk_level": "medium",
+    "reversible": true,
+    "undo_handler": "revert_sale_price",
+    "auto_execute_min_confidence": null,
+    "requires_approval": true,
+    "scenarios": ["KB2"],
+    "constraints": {
+      "min_margin_pct": 5,
+      "max_price_increase_pct_per_action": 50
+    },
+    "approval_panel": {
+      "title": "Cập nhật giá bán – {product_name}",
+      "warning": "Thay đổi sẽ áp dụng cho TẤT CẢ kênh bán hàng ngay lập tức.",
+      "summary_template": "Giá nhập tăng {price_change_pct}% → margin hiện tại {current_margin_pct}%. AI đề xuất tăng giá bán lên {suggested_price_fmt}đ để đạt margin {target_margin_pct}%.",
+      "editable_fields": [
+        {
+          "name": "new_sale_price",
+          "label": "Giá bán mới",
+          "type": "float",
+          "unit": "đ",
+          "ai_suggested": true,
+          "note": "Margin tối thiểu 5% so với giá nhập"
+        }
+      ],
+      "display_fields": [
+        { "name": "product_sku", "label": "SKU" },
+        { "name": "current_cost", "label": "Giá nhập hiện tại" },
+        { "name": "current_sale_price", "label": "Giá bán hiện tại" },
+        { "name": "current_margin_pct", "label": "Margin hiện tại" },
+        {
+          "name": "projected_margin_pct",
+          "label": "Margin sau điều chỉnh",
+          "computed": "(new_sale_price - current_cost) / new_sale_price * 100"
+        },
+        {
+          "name": "projected_daily_loss",
+          "label": "Thiệt hại margin/ngày nếu không đổi"
+        }
+      ]
+    },
+    "params_schema": {
+      "product_sku": { "type": "string", "required": true },
+      "new_sale_price": { "type": "float", "required": true },
+      "old_sale_price": { "type": "float", "required": true },
+      "reason": { "type": "string", "required": true }
+    }
+  },
+  "send_discount_offer": {
+    "description": "Tạo Quotation với discount cho khách VIP churn risk. User review và có thể điều chỉnh % giảm giá ngay trên ERPSight.",
+    "risk_level": "medium",
+    "reversible": true,
+    "undo_handler": "cancel_quotation",
+    "auto_execute_min_confidence": 0.85,
+    "requires_approval": true,
+    "scenarios": ["KB3"],
+    "constraints": {
+      "max_discount_pct": 15
+    },
+    "approval_panel": {
+      "title": "Gửi ưu đãi tái kết nối – {partner_name}",
+      "summary_template": "Khách VIP {partner_name} im lặng {silent_days} ngày. AI đề xuất gửi quotation với {discount_pct}% discount.",
+      "editable_fields": [
+        {
+          "name": "discount_pct",
+          "label": "% giảm giá",
+          "type": "float",
+          "unit": "%",
+          "min": 1,
+          "max": 15,
+          "ai_suggested": true
+        },
+        {
+          "name": "validity_days",
+          "label": "Hiệu lực (ngày)",
+          "type": "int",
+          "default": 7,
+          "ai_suggested": false
+        },
+        {
+          "name": "personal_message",
+          "label": "Lời nhắn cá nhân (tùy chọn)",
+          "type": "string",
+          "required": false
+        }
+      ],
+      "display_fields": [
+        { "name": "partner_name", "label": "Khách hàng" },
+        { "name": "last_order_date", "label": "Đơn hàng cuối" },
+        { "name": "silent_days", "label": "Ngày im lặng" },
+        { "name": "complaint_context", "label": "Lý do có thể" }
+      ]
+    },
+    "params_schema": {
+      "partner_name": { "type": "string", "required": true },
+      "discount_pct": { "type": "float", "required": true },
+      "validity_days": { "type": "int", "required": true },
+      "personal_message": { "type": "string", "required": false },
+      "max_discount_pct": { "type": "float", "required": true }
+    }
+  },
+  "cancel_purchase_order": {
+    "description": "[Undo handler] Hủy PO vừa tạo bởi create_purchase_order trong vòng 1 giờ",
+    "risk_level": "high",
+    "reversible": false,
+    "undo_handler": null,
+    "auto_execute_min_confidence": null,
+    "manual_only": true,
+    "scenarios": ["KB1"],
+    "preconditions": [
+      "po_state_in_draft_or_sent",
+      "no_linked_bills",
+      "no_done_pickings"
+    ]
+  },
+  "revert_sale_price": {
+    "description": "[Undo handler] Khôi phục giá bán về giá cũ sau khi update_sale_price",
+    "risk_level": "medium",
+    "reversible": false,
+    "undo_handler": null,
+    "auto_execute_min_confidence": null,
+    "manual_only": true,
+    "scenarios": ["KB2"],
+    "time_window_to_undo_minutes": 60
+  },
+  "send_correction_note": {
+    "description": "[Compensating] Gửi note đính chính nếu alert trước đó gửi thông tin sai",
+    "risk_level": "low",
+    "reversible": false,
+    "undo_handler": null,
+    "auto_execute_min_confidence": null,
+    "compensating_only": true,
+    "scenarios": ["KB1", "KB2", "KB3"]
   }
 }
