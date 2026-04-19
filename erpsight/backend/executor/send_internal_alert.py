@@ -97,7 +97,7 @@ def execute(params: Dict[str, Any]) -> Dict[str, Any]:
 
     subject = params.get("subject", "")
     body = params.get("message_body", "")
-    message = f"<b>{subject}</b><br/>{body}"
+    message = f"{subject}\n{body}"
 
     msg_id = client.post_chatter_message(model, res_id, message)
     return {"success": True, "record_id": msg_id}
@@ -120,18 +120,14 @@ def execute_margin_alert(params: Dict[str, Any]) -> Dict[str, Any]:
     margin = params.get('current_margin_pct', 0)
     loss = params.get('projected_daily_loss', 0)
 
+    lines = [f"[ERPSight] Canh bao bien LN - {label}"]
     if old_price > 0 and new_price > 0:
-        price_line = f"Giá vốn: {old_price:,.0f}đ → {new_price:,.0f}đ ({pct:+.1f}%)<br/>"
-    else:
-        price_line = ""
-
-    body = (
-        f"<b>[ERPSight] Cảnh báo biên lợi nhuận – {label}</b><br/>"
-        f"{price_line}"
-        f"Giá bán hiện tại: {sale:,.0f}đ<br/>"
-        f"Biên LN: {margin:.2f}%<br/>"
-        + (f"Tổn thất ước tính/ngày: {loss:,.0f}đ" if loss > 0 else "")
-    )
+        lines.append(f"Gia von: {old_price:,.0f}d -> {new_price:,.0f}d ({pct:+.1f}%)")
+    lines.append(f"Gia ban hien tai: {sale:,.0f}d")
+    lines.append(f"Bien LN: {margin:.2f}%")
+    if loss > 0:
+        lines.append(f"Ton that uoc tinh/ngay: {loss:,.0f}d")
+    body = "\n".join(lines)
     msg_id = client.post_chatter_message("product.template", res_id, body)
     return {"success": True, "record_id": msg_id}
 
@@ -146,13 +142,14 @@ def execute_churn_alert(params: Dict[str, Any]) -> Dict[str, Any]:
     if partner_id is None:
         return {"success": False, "error": f"Partner '{partner_name}' not found"}
 
-    body = (
-        f"<b>[ERPSight] Cảnh báo churn – {partner_name}</b><br/>"
-        f"Đơn hàng cuối: {params.get('last_order_date', 'N/A')}<br/>"
-        f"Im lặng: {params.get('silent_days', 0)} ngày<br/>"
-        f"Chu kỳ TB: {params.get('avg_order_cycle', 0):.0f} ngày<br/>"
-        f"Hệ số quá hạn: {params.get('overdue_factor', 0):.2f}x"
-    )
+    lines = [
+        f"[ERPSight] Canh bao churn - {partner_name}",
+        f"Don hang cuoi: {params.get('last_order_date', 'N/A')}",
+        f"Im lang: {params.get('silent_days', 0)} ngay",
+        f"Chu ky TB: {params.get('avg_order_cycle', 0):.0f} ngay",
+        f"He so qua han: {params.get('overdue_factor', 0):.2f}x",
+    ]
+    body = "\n".join(lines)
     msg_id = client.post_chatter_message("res.partner", partner_id, body)
     return {"success": True, "record_id": msg_id}
 
@@ -172,13 +169,17 @@ def execute_flag_review(params: Dict[str, Any]) -> Dict[str, Any]:
     margin = params.get('current_margin_pct', 0)
     suggested = params.get('suggested_new_sale_price', 0)
     target = params.get('target_margin_pct', 0)
-    body = (
-        f"<b>[ERPSight] Cần xem xét giá – {label}</b><br/>"
-        f"Giá nhập hiện tại: {cost:,.0f}đ<br/>"
-        f"Giá bán hiện tại: {sale:,.0f}đ<br/>"
-        f"Biên LN: {margin:.2f}%<br/>"
-        + (f"Giá bán đề xuất: {suggested:,.0f}đ (đạt margin {target:.0f}%)<br/>" if suggested > 0 else "")
-        + f"{params.get('note', '')}"
-    )
+    lines = [
+        f"[ERPSight] Can xem xet gia ban - {label}",
+        f"Gia nhap hien tai: {cost:,.0f}d",
+        f"Gia ban hien tai: {sale:,.0f}d",
+        f"Bien LN hien tai: {margin:.2f}%",
+    ]
+    if suggested > 0:
+        lines.append(f"Gia ban de xuat: {suggested:,.0f}d (dat margin {target:.0f}%)")
+    note = params.get('note', '').replace('[AI] ', '')
+    if note:
+        lines.append(note)
+    body = "\n".join(lines)
     msg_id = client.post_chatter_message("product.template", res_id, body)
     return {"success": True, "record_id": msg_id}

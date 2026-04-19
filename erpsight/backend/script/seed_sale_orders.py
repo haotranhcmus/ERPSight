@@ -71,7 +71,7 @@ TG_PC_DATES = [
 # List prices (để tính giá bán sau chiết khấu)
 PRODUCT_DEFS = {
     "RAM-DDR5-16-KS":  2200000,
-    "RAM-DDR5-32-KS":  4100000,
+    "RAM-DDR5-32-KS":  4350000,
     "RAM-DDR5-16-SS":  2350000,
     "RAM-DDR5-32-CO":  4300000,
     "SSD-1TB-SS-870":  1750000,

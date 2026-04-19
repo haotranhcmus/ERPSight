@@ -1,15 +1,9 @@
 import { NavLink } from "react-router-dom";
-import {
-  LayoutDashboard,
-  AlertTriangle,
-  CheckCheck,
-  History,
-} from "lucide-react";
+import { LayoutDashboard, AlertTriangle, History } from "lucide-react";
 
 const NAV_ITEMS = [
   { to: "/", end: true, icon: LayoutDashboard, label: "Tổng quan" },
   { to: "/anomalies", end: false, icon: AlertTriangle, label: "Bất thường" },
-  { to: "/approvals", end: false, icon: CheckCheck, label: "Phê duyệt" },
   { to: "/action-logs", end: false, icon: History, label: "Lịch sử" },
 ];
 

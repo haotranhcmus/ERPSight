@@ -247,30 +247,40 @@ def main():
     print("  date_planned updated for all PO lines")
 
     # ═════════════════════════════════════════════════════════════════════════
-    # 4) SET Delivery Lead Time (product.supplierinfo)
+    # 4) SET Delivery Lead Time + Vendor Price (product.supplierinfo)
+    # Cập nhật giá nhà cung cấp để tab "Mua hàng" hiển thị đúng giá mới nhất
+    # PO8 (Apr 5) là PO giá cao nhất → dùng giá PO8 làm vendor price hiện tại
     # ═════════════════════════════════════════════════════════════════════════
-    print("\n=== SET VENDOR LEAD TIME ===")
-    # Tìm product_tmpl_id cho RAM DDR5 16GB Kingston
-    tmpl_recs = execute("product.template", "search_read",
-                        [[("default_code", "=", "RAM-DDR5-16-KS")]],
-                        fields=["id"], limit=1)
-    if tmpl_recs:
+    print("\n=== SET VENDOR LEAD TIME & PRICE ===")
+    # 3 sản phẩm bị tăng giá trong PO8
+    vendor_price_updates = [
+        ("RAM-DDR5-16-KS", minh_phat, 2150000, 4),
+        ("RAM-DDR5-32-KS", minh_phat, 4060000, 4),
+        ("RAM-DDR5-16-SS", minh_phat, 2262000, 4),
+    ]
+    for ref, partner_id, new_price, lead_days in vendor_price_updates:
+        tmpl_recs = execute("product.template", "search_read",
+                            [[("default_code", "=", ref)]],
+                            fields=["id"], limit=1)
+        if not tmpl_recs:
+            print(f"  [skip] product {ref} not found")
+            continue
         tmpl_id = tmpl_recs[0]["id"]
-        # Search existing supplierinfo
         si_ids = execute("product.supplierinfo", "search",
                          [[("product_tmpl_id", "=", tmpl_id),
-                           ("partner_id", "=", minh_phat)]])
+                           ("partner_id", "=", partner_id)]])
         if si_ids:
-            execute("product.supplierinfo", "write", si_ids, {"delay": 4})
-            print(f"  Updated delay=4 cho supplierinfo ids={si_ids}")
+            execute("product.supplierinfo", "write", si_ids,
+                    {"delay": lead_days, "price": new_price})
+            print(f"  Updated supplierinfo {ref}: price={new_price:,} delay={lead_days}")
         else:
             si_id = execute("product.supplierinfo", "create", {
                 "product_tmpl_id": tmpl_id,
-                "partner_id": minh_phat,
-                "delay": 4,
-                "price": 1850000,
+                "partner_id": partner_id,
+                "delay": lead_days,
+                "price": new_price,
             })
-            print(f"  Created supplierinfo id={si_id} delay=4")
+            print(f"  Created supplierinfo {ref}: id={si_id} price={new_price:,}")
 
     # ═════════════════════════════════════════════════════════════════════════
     # 5) VALIDATE PO RECEIPTS – backdate scheduled_date + mark goods received

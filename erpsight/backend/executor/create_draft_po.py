@@ -67,6 +67,12 @@ def execute(params: Dict[str, Any]) -> Dict[str, Any]:
         order_lines=order_lines,
         notes=params.get("note", ""),
     )
+
+    po_id = result.get("record_id")
+    if po_id and not result.get("skipped"):
+        client.execute_kw("purchase.order", "button_confirm", [[po_id]])
+        logger.info("Auto-confirmed PO id=%d", po_id)
+
     return {"success": True, **result}
 
 
@@ -76,11 +82,23 @@ def execute_update_price(params: Dict[str, Any]) -> Dict[str, Any]:
     """Update the list_price of a product template."""
     client = _get_client()
     sku = params.get("product_sku", "")
-    records = client.search_read("product.template", [("default_code", "=", sku)], ["id"], limit=1)
-    if not records:
-        return {"success": False, "error": f"Product template '{sku}' not found"}
+    product_id = params.get("_odoo_product_id")
 
-    tmpl_id = records[0]["id"]
+    # Resolve product.template id: try SKU first, then fallback via product.product id
+    tmpl_id: int | None = None
+    if sku:
+        records = client.search_read("product.template", [("default_code", "=", sku)], ["id"], limit=1)
+        if records:
+            tmpl_id = records[0]["id"]
+    if tmpl_id is None and product_id:
+        pp = client.search_read("product.product", [("id", "=", product_id)], ["product_tmpl_id", "default_code"], limit=1)
+        if pp:
+            tmpl_ref = pp[0].get("product_tmpl_id")
+            tmpl_id = int(tmpl_ref[0]) if tmpl_ref else None
+            if not sku:
+                sku = pp[0].get("default_code", f"id:{product_id}")
+    if tmpl_id is None:
+        return {"success": False, "error": f"Product template not found (sku={sku!r}, product_id={product_id})"}
     new_price = float(params.get("new_sale_price", 0))
     if new_price <= 0:
         return {"success": False, "error": "new_sale_price must be > 0"}
@@ -89,11 +107,11 @@ def execute_update_price(params: Dict[str, Any]) -> Dict[str, Any]:
     logger.info("Updated list_price of product.template#%d to %.2f", tmpl_id, new_price)
 
     # Post an audit note
-    note = (
-        f"<b>[ERPSight] Cập nhật giá bán</b><br/>"
-        f"Giá cũ → Mới: {params.get('current_sale_price', params.get('old_sale_price', '?')):,.0f}đ → {new_price:,.0f}đ<br/>"
-        f"Lý do: {params.get('reason', 'AI-suggested price update')}"
-    )
+    note = "\n".join([
+        "[ERPSight] Cap nhat gia ban",
+        f"Gia cu: {params.get('current_sale_price', params.get('old_sale_price', '?')):,.0f}d -> Moi: {new_price:,.0f}d",
+        f"Ly do: {params.get('reason', 'AI-suggested price update')}",
+    ])
     client.post_chatter_message("product.template", tmpl_id, note)
 
     return {"success": True, "record_id": tmpl_id, "new_price": new_price}

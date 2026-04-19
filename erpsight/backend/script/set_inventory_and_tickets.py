@@ -126,7 +126,7 @@ def main():
             print(f"  ⚠️  {sku}: not found, skip")
             continue
         t = tmpl[0]
-        execute("product.template", "write", [[t["id"]], {"standard_price": new_cost}])
+        execute("product.template", "write", [t["id"]], {"standard_price": new_cost})
         margin = (t["list_price"] - new_cost) / t["list_price"] * 100
         print(f"  ✅ {sku}: standard_price {t['standard_price']:,.0f} → {new_cost:,.0f}  (margin now {margin:.2f}%)")
 

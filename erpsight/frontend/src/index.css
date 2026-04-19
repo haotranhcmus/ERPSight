@@ -188,6 +188,10 @@ body {
   background: #f5d9f5;
   color: #7b1fa2;
 }
+.badge-secondary {
+  background: #e9ecef;
+  color: #495057;
+}
 .btn {
   display: inline-flex;
   align-items: center;
@@ -815,6 +819,26 @@ tbody tr:hover {
   margin-top: 2px;
   line-height: 1.4;
 }
+.action-item-result-summary {
+  font-size: 12px;
+  color: #155724;
+  background: #d4edda;
+  border-radius: 4px;
+  padding: 2px 7px;
+  margin-top: 5px;
+  display: inline-block;
+  font-weight: 500;
+}
+.action-item-reject-reason {
+  font-size: 12px;
+  color: #7b1c1c;
+  background: #fde8ea;
+  border-radius: 4px;
+  padding: 2px 7px;
+  margin-top: 5px;
+  display: inline-block;
+  font-weight: 500;
+}
 .action-item-right {
   display: flex;
   align-items: center;
@@ -963,4 +987,181 @@ tbody tr:hover {
 }
 .btn-secondary:hover {
   background: var(--border);
+}
+
+/* ── Resolution banner (in DetailModal for resolved anomalies) ──────────────── */
+.resolution-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin-bottom: 14px;
+  font-size: 13px;
+  border: 1px solid transparent;
+}
+.resolution-approved {
+  background: #d4edda;
+  color: #155724;
+  border-color: #c3e6cb;
+}
+.resolution-auto {
+  background: #d6eaf8;
+  color: #1a5276;
+  border-color: #a9cce3;
+}
+.resolution-rejected {
+  background: #e9ecef;
+  color: #495057;
+  border-color: #ced4da;
+}
+.resolution-advisory {
+  background: #e8eaf6;
+  color: #3949ab;
+  border-color: #c5cae9;
+}
+
+/* ── Advisory-specific pieces inside ActionApprovalModal ────────────────────── */
+.advisory-summary-box {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text);
+  margin-top: 6px;
+}
+.advisory-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 12px;
+  color: #856404;
+  background: #fff8e1;
+  border: 1px solid #ffe082;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin: 12px 0;
+}
+
+/* ── Advisory hint inside action-item ──────────────────────────────────────── */
+.action-item-advisory-hint {
+  font-size: 11px;
+  color: #3949ab;
+  margin-top: 3px;
+  font-style: italic;
+}
+
+/* ── Advisory action status badge ──────────────────────────────────────────── */
+.action-status-advisory {
+  background: #e8eaf6;
+  color: #3949ab;
+}
+
+/* ── Extended anomaly status badges (auto, advisory) ────────────────────────── */
+.anomaly-status-auto {
+  background: #d6eaf8;
+  color: #1a5276;
+}
+.anomaly-status-advisory {
+  background: #e8eaf6;
+  color: #3949ab;
+}
+
+/* ── result-banner--advisory ────────────────────────────────────────────────── */
+.result-banner--advisory {
+  background: #e8eaf6;
+  color: #3949ab;
+  border-color: #c5cae9;
+}
+
+/* ── Undo button ────────────────────────────────────────────────────────────── */
+.btn-undo {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 5px;
+  background: #fff8f0;
+  color: #b05000;
+  border: 1px solid #f0c080;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+.btn-undo:hover:not(:disabled) {
+  background: #fde8cc;
+}
+.btn-undo:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* ── Anomaly filter tabs ─────────────────────────────────────────────────────── */
+.anomaly-filter-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid var(--border);
+  padding-bottom: 0;
+}
+.anomaly-filter-tab {
+  padding: 8px 16px;
+  border: none;
+  background: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.anomaly-filter-tab.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+.anomaly-filter-tab:hover:not(.active) {
+  color: var(--text);
+}
+.anomaly-filter-tab .tab-count {
+  background: var(--primary);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 8px;
+}
+.anomaly-filter-tab.active .tab-count {
+  background: var(--primary);
+}
+.anomaly-filter-tab:not(.active) .tab-count {
+  background: var(--text-secondary);
+  opacity: 0.7;
+}
+
+/* ── Anomaly status badges (resolved / dismissed) ────────────────────────────── */
+.anomaly-status-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 8px;
+}
+.anomaly-status-resolved {
+  background: #d4edda;
+  color: #155724;
+}
+.anomaly-status-dismissed {
+  background: #e9ecef;
+  color: #495057;
 }

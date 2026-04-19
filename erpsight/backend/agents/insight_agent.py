@@ -203,7 +203,10 @@ def _llm_analyze(event: AnomalyEvent) -> InsightReport:
 def _rule_based_analyze(event: AnomalyEvent) -> InsightReport:
     """Deterministic analysis for each known anomaly type (KB1–KB3)."""
     report_id = f"rpt-{uuid.uuid4().hex[:8]}"
-    confidence = compute_confidence(event.score)
+    # Use the detector's own confidence (already calibrated per anomaly type).
+    # compute_confidence(event.score) is wrong here because detectors use different
+    # score scales (z-score, margin delta, days remaining) not normalised to 0-1.
+    confidence = event.confidence
     d = event.details
     actions: List[RecommendedAction] = []
     evidence: List[str] = []
@@ -261,13 +264,30 @@ def _rule_based_analyze(event: AnomalyEvent) -> InsightReport:
         }
         if not product_sku and event.product_id:
             alert_params["_odoo_product_id"] = event.product_id
+        # Suggest PO first (priority=1) when supplier info is available — this is the key action
+        supplier = d.get("supplier_name", "")
+        if supplier:
+            actions.append(RecommendedAction(
+                action_type="create_purchase_order",
+                params={
+                    "product_sku": product_sku,
+                    "supplier_name": supplier,
+                    "qty": int(d.get("suggested_qty", 50)),
+                    "price_unit": d.get("last_price_unit", 0),
+                    "date_planned": deadline,
+                    "note": f"[AI] Auto-PO: {summary}",
+                },
+                reason="Bổ sung hàng để tránh hết tồn.",
+                priority=1,
+            ))
+        # Internal alert fallback (priority=1 if no supplier, else priority=2)
         actions.append(RecommendedAction(
             action_type="send_internal_alert",
             params=alert_params,
             reason=root_cause,
-            priority=1,
+            priority=1 if not supplier else 2,
         ))
-        # Create activity task
+        # Activity task (lowest priority)
         activity_params = {
             "res_model": "product.template",
             "res_id_lookup": {"field": "default_code", "value": product_sku},
@@ -283,24 +303,8 @@ def _rule_based_analyze(event: AnomalyEvent) -> InsightReport:
             action_type="create_activity_task",
             params=activity_params,
             reason="Tạo nhắc nhở kiểm tra và bổ sung hàng.",
-            priority=2,
+            priority=3,
         ))
-        # Suggest PO (medium-risk, needs approval)
-        supplier = d.get("supplier_name", "")
-        if supplier:
-            actions.append(RecommendedAction(
-                action_type="create_purchase_order",
-                params={
-                    "product_sku": product_sku,
-                    "supplier_name": supplier,
-                    "qty": int(d.get("suggested_qty", 50)),
-                    "price_unit": d.get("last_price_unit", 0),
-                    "date_planned": deadline,
-                    "note": f"[AI] Auto-PO: {summary}",
-                },
-                reason="Bổ sung hàng để tránh hết tồn.",
-                priority=3,
-            ))
 
     # ── KB2: Margin Erosion ───────────────────────────────────────────────
     elif atype == AnomalyType.MARGIN_EROSION:
@@ -340,7 +344,7 @@ def _rule_based_analyze(event: AnomalyEvent) -> InsightReport:
             if standard_price > 0 and purchase_price > 0 else 0
         )
         target_margin = 0.15
-        suggested_sale = round(cost / (1 - target_margin), 0) if cost > 0 else 0
+        suggested_sale = round(cost / (1 - target_margin) / 1000) * 1000 if cost > 0 else 0
 
         margin_params = {
             "product_sku": d.get("product_sku", ""),
@@ -355,12 +359,23 @@ def _rule_based_analyze(event: AnomalyEvent) -> InsightReport:
         if not margin_params["product_sku"] and event.product_id:
             margin_params["_odoo_product_id"] = event.product_id
 
-        actions.append(RecommendedAction(
-            action_type="send_margin_alert",
-            params=margin_params,
-            reason=root_cause,
-            priority=1,
-        ))
+        # Propose price update first (priority=1) — this is the key action user should act on
+        if suggested_sale > 0 and sale_price > 0 and suggested_sale > sale_price:
+            price_params = {
+                "product_sku": d.get("product_sku", ""),
+                "current_sale_price": sale_price,
+                "new_sale_price": suggested_sale,
+                "current_margin_pct": round(margin, 2),
+                "reason": f"Tăng giá bán lên {suggested_sale:,.0f}đ để đạt margin ~{target_margin*100:.0f}%. Giá vốn hiện tại: {cost:,.0f}đ.",
+            }
+            if not price_params["product_sku"] and event.product_id:
+                price_params["_odoo_product_id"] = event.product_id
+            actions.append(RecommendedAction(
+                action_type="update_sale_price",
+                params=price_params,
+                reason=f"Tăng giá bán lên {suggested_sale:,.0f}đ để đạt margin {target_margin*100:.0f}%.",
+                priority=1,
+            ))
 
         flag_params = {
             "product_sku": d.get("product_sku", ""),
@@ -380,24 +395,13 @@ def _rule_based_analyze(event: AnomalyEvent) -> InsightReport:
             reason="Gắn cờ sản phẩm cần xem xét và điều chỉnh giá bán.",
             priority=2,
         ))
-
-        # Propose price update (medium-risk, requires approval)
-        if suggested_sale > 0 and sale_price > 0 and suggested_sale > sale_price:
-            price_params = {
-                "product_sku": d.get("product_sku", ""),
-                "current_sale_price": sale_price,
-                "new_sale_price": suggested_sale,
-                "current_margin_pct": round(margin, 2),
-                "reason": f"Tăng giá bán lên {suggested_sale:,.0f}đ để đạt margin ~{target_margin*100:.0f}%. Giá vốn hiện tại: {cost:,.0f}đ.",
-            }
-            if not price_params["product_sku"] and event.product_id:
-                price_params["_odoo_product_id"] = event.product_id
-            actions.append(RecommendedAction(
-                action_type="update_sale_price",
-                params=price_params,
-                reason=f"Tăng giá bán lên {suggested_sale:,.0f}đ để đạt margin {target_margin*100:.0f}%.",
-                priority=3,
-            ))
+        # Margin alert (lowest priority — informational)
+        actions.append(RecommendedAction(
+            action_type="send_margin_alert",
+            params=margin_params,
+            reason=root_cause,
+            priority=3,
+        ))
 
     # ── KB3: VIP Churn ────────────────────────────────────────────────────
     elif atype == AnomalyType.VIP_CHURN:
@@ -432,6 +436,26 @@ def _rule_based_analyze(event: AnomalyEvent) -> InsightReport:
             action_type="send_churn_risk_alert",
             params=churn_params,
             reason=root_cause,
+            priority=2,
+        ))
+        actions.append(RecommendedAction(
+            action_type="create_helpdesk_ticket",
+            params={
+                "partner_name": partner,
+                "ticket_name": f"[ERPSight KB3] Theo doi churn risk - {partner}",
+                "description": (
+                    f"[ERPSight] VIP Churn Alert\n"
+                    f"Khach hang: {partner}\n"
+                    f"Don hang cuoi: {last_order or 'N/A'}\n"
+                    f"Im lang: {silent} ngay ({overdue:.2f}x chu ky trung binh {avg_cycle:.0f} ngay)\n"
+                    f"Can lien he lai va xac nhan tinh trang, de xuat uu dai giu chan."
+                ),
+                "priority": "1",
+                "silent_days": silent,
+                "last_order_date": last_order,
+                "overdue_factor": overdue,
+            },
+            reason="Tạo helpdesk ticket nội bộ để team Sales theo dõi và xử lý rủi ro mất khách VIP.",
             priority=1,
         ))
         actions.append(RecommendedAction(
@@ -447,19 +471,42 @@ def _rule_based_analyze(event: AnomalyEvent) -> InsightReport:
                 "has_recent_complaint": d.get("has_recent_complaint", False),
             },
             reason="Tạo hoạt động liên hệ lại khách VIP.",
-            priority=2,
+            priority=3,
         ))
 
     # ── Catch-all (Isolation Forest / unknown) ────────────────────────────
     else:
-        summary = f"Bất thường đa biến phát hiện bởi {atype}: {event.metric}={event.metric_value:.2f}."
-        root_cause = "Cần phân tích sâu — kết hợp nhiều chỉ số bất thường."
+        product_label = event.product_name or event.partner_name or f"product#{event.product_id}"
+        details_lines = []
+        if event.details:
+            d_vals = event.details
+            if d_vals.get("total_qty"):
+                details_lines.append(f"Sản lượng bán: {d_vals['total_qty']:.0f}")
+            if d_vals.get("avg_margin_pct") is not None:
+                details_lines.append(f"Biên LN TB: {d_vals['avg_margin_pct']:.2f}%")
+            if d_vals.get("available_qty") is not None:
+                details_lines.append(f"Tồn kho: {d_vals['available_qty']:.0f}")
+        detail_str = " | ".join(details_lines) if details_lines else f"Điểm bất thường: {event.metric_value:.3f}"
+
+        summary = (
+            f"Mô hình Isolation Forest phát hiện {product_label} có tổ hợp chỉ số bất thường. "
+            f"{detail_str}."
+        )
+        evidence.append(
+            f"IF anomaly score: {event.metric_value:.4f} (càng cao càng bất thường). "
+            f"Sản phẩm này là outlier đa biến trong toàn bộ danh mục."
+        )
+        root_cause = (
+            "Kết hợp bất thường của nhiều chỉ số (doanh số, biên LN, tồn kho) — "
+            "không trùng với KB1–KB3, cần điều tra thêm."
+        )
+        # Use send_internal_alert (informational_only in whitelist → auto-execute, no approval queue)
         actions.append(RecommendedAction(
             action_type="send_internal_alert",
             params={
                 "res_model": "product.template",
-                "res_id_lookup": {"field": "default_code", "value": d.get("product_sku", "")},
-                "subject": f"[ERPSight] Bất thường đa biến – {event.product_name or event.partner_name or 'unknown'}",
+                "res_id_lookup": {"field": "id", "value": event.product_id},
+                "subject": f"[ERPSight] Anomaly đa biến – {product_label}",
                 "message_body": summary,
                 "notify_user_logins": ["admin"],
             },

@@ -5,7 +5,7 @@
     "reversible": false,
     "undo_handler": null,
     "compensating_action": "send_correction_note",
-    "auto_execute_min_confidence": 0.7,
+    "auto_execute_min_confidence": 0.5,
     "scenarios": ["KB1", "KB2", "KB3"],
     "params_schema": {
       "res_model": { "type": "string", "required": true },
@@ -300,6 +300,24 @@
     "manual_only": true,
     "scenarios": ["KB2"],
     "time_window_to_undo_minutes": 60
+  },
+  "create_helpdesk_ticket": {
+    "description": "Tạo helpdesk ticket nội bộ để team Sales theo dõi rủi ro churn của khách VIP",
+    "risk_level": "low",
+    "reversible": false,
+    "undo_handler": null,
+    "auto_execute_min_confidence": null,
+    "requires_approval": true,
+    "scenarios": ["KB3"],
+    "params_schema": {
+      "partner_name": { "type": "string", "required": true },
+      "ticket_name": { "type": "string", "required": true },
+      "description": { "type": "string", "required": true },
+      "priority": { "type": "string", "required": false },
+      "silent_days": { "type": "int", "required": false },
+      "last_order_date": { "type": "string", "required": false },
+      "overdue_factor": { "type": "float", "required": false }
+    }
   },
   "send_correction_note": {
     "description": "[Compensating] Gửi note đính chính nếu alert trước đó gửi thông tin sai",

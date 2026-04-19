@@ -24,5 +24,8 @@ export const updateApprovalParams = (id, params) =>
   api.patch(`/approvals/${id}/params`, { params });
 
 export const getActionLogs = () => api.get("/action-logs");
+export const undoAction = (logId) => api.post(`/action-logs/${logId}/undo`);
+
+export const injectTestKB3 = () => api.post("/debug/inject-kb3-ticket-test");
 
 export default api;

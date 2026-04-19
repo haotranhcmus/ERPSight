@@ -35,13 +35,33 @@ def run_full_pipeline() -> Dict[str, Any]:
     events: List[AnomalyEvent] = sentinel.run()
     logger.info("Pipeline Step 1: %d anomaly events detected", len(events))
 
-    # Persist events
+    # Persist events — bỏ qua nếu đã có ACTIVE anomaly cùng type+entity (chống spam)
+    new_events: List[AnomalyEvent] = []
+    skipped_dedup = 0
     for ev in events:
+        existing = firebase_store.find_active_anomaly(
+            ev.anomaly_type,
+            product_id=ev.product_id,
+            partner_id=ev.partner_id,
+        )
+        if existing:
+            logger.debug(
+                "Dedup: skip %s for product_id=%s partner_id=%s — active event %s",
+                ev.anomaly_type, ev.product_id, ev.partner_id, existing.get("event_id"),
+            )
+            skipped_dedup += 1
+            continue
         firebase_store.save_anomaly(ev.event_id, ev.model_dump(mode="json"))
+        new_events.append(ev)
+
+    logger.info(
+        "Pipeline Step 1: %d new events saved, %d skipped (already active)",
+        len(new_events), skipped_dedup,
+    )
 
     # ── Step 2: Analysis ──────────────────────────────────────────────────
     reports: List[InsightReport] = []
-    for ev in events:
+    for ev in new_events:
         try:
             report = insight_agent.analyze(ev)
             reports.append(report)
@@ -71,6 +91,8 @@ def run_full_pipeline() -> Dict[str, Any]:
 
     return {
         "anomalies_detected": len(events),
+        "new_anomalies_saved": len(new_events),
+        "duplicate_skipped": skipped_dedup,
         "reports_generated": len(reports),
         "actions_auto_executed": total_auto,
         "actions_queued_for_approval": total_queued,

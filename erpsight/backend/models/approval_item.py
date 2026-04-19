@@ -31,6 +31,8 @@ class ApprovalItem(BaseModel):
     reason: str = ""
     summary: str = ""
     status: ApprovalStatus = ApprovalStatus.PENDING
+    # advisory_only=True: low-confidence — chỉ hiển thị text, không thực thi Odoo khi approve
+    advisory_only: bool = False
     created_at: datetime = Field(default_factory=datetime.utcnow)
     reviewed_by: Optional[str] = None
     reviewed_at: Optional[datetime] = None

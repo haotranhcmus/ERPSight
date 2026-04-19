@@ -134,7 +134,7 @@ def main():
 
     products = [
         {"name": "RAM DDR5 16GB Kingston",        "default_code": "RAM-DDR5-16-KS",   "standard_price": 1850000,  "list_price": 2200000},
-        {"name": "RAM DDR5 32GB Kingston",        "default_code": "RAM-DDR5-32-KS",   "standard_price": 3500000,  "list_price": 4100000},
+        {"name": "RAM DDR5 32GB Kingston",        "default_code": "RAM-DDR5-32-KS",   "standard_price": 3500000,  "list_price": 4350000},
         {"name": "RAM DDR5 16GB Samsung",         "default_code": "RAM-DDR5-16-SS",   "standard_price": 1950000,  "list_price": 2350000},
         {"name": "RAM DDR5 32GB Corsair",         "default_code": "RAM-DDR5-32-CO",   "standard_price": 3600000,  "list_price": 4300000},
         {"name": "SSD 1TB Samsung 870 EVO",       "default_code": "SSD-1TB-SS-870",   "standard_price": 1450000,  "list_price": 1750000},

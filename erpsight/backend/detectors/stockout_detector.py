@@ -57,6 +57,21 @@ def detect(
         if inv.product_name:
             product_names[inv.product_id] = inv.product_name
 
+    # Fetch product SKUs directly from Odoo (OrderLine has no default_code)
+    try:
+        all_pids = list(set(list(total_qty.keys()) + list(stock_by_product.keys())))
+        if all_pids:
+            pp_records = client.search_read(
+                "product.product",
+                [("id", "in", all_pids)],
+                ["id", "default_code"],
+            )
+            for pp in pp_records:
+                if pp.get("default_code"):
+                    product_skus[pp["id"]] = pp["default_code"]
+    except Exception:
+        logger.warning("stockout_detector: failed to fetch product SKUs from Odoo")
+
     # Fetch latest supplier info from purchase orders (for create_purchase_order action)
     try:
         recent_pos = data_service.fetch_supplier_orders(client, date_from=date_from, date_to=date_to)
@@ -82,6 +97,7 @@ def detect(
             sup_name, sup_price = latest_supplier.get(pid, ("", 0))
             # estimate a sensible reorder qty: enough for 30 days at avg rate
             suggested_qty = max(50, round(avg_daily * 30))
+            sku = product_skus.get(pid, "")
             events.append(AnomalyEvent(
                 event_id=uuid.uuid4().hex[:12],
                 anomaly_type=AnomalyType.STOCKOUT_RISK,
@@ -95,6 +111,7 @@ def detect(
                 confidence=round(confidence, 3),
                 severity="high" if days_remaining < 1 else "medium",
                 details={
+                    "product_sku": sku,
                     "available_qty": round(stock, 1),
                     "avg_daily_sales": round(avg_daily, 2),
                     "days_remaining": round(days_remaining, 2),

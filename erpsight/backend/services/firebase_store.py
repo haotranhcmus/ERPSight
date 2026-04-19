@@ -113,6 +113,48 @@ def update_anomaly(event_id: str, patch: Dict[str, Any]) -> None:
         _in_memory["anomalies"][event_id].update(patch)
 
 
+def find_active_anomaly(
+    anomaly_type: str,
+    product_id: Optional[int] = None,
+    partner_id: Optional[int] = None,
+) -> Optional[Dict[str, Any]]:
+    """
+    Tìm anomaly đang ACTIVE (chưa xử lý) cùng type + entity.
+    Dùng để chống spam: nếu đã có active anomaly cho cùng sản phẩm/khách,
+    pipeline không tạo thêm record mới.
+    """
+    for anomaly in get_all_anomalies():
+        # Bỏ qua record đã resolved/dismissed (cho phép tạo mới nếu issue tái hiện)
+        if anomaly.get("status") in ("resolved", "dismissed"):
+            continue
+        if anomaly.get("anomaly_type") != anomaly_type:
+            continue
+        if product_id is not None and anomaly.get("product_id") == product_id:
+            return anomaly
+        if partner_id is not None and anomaly.get("partner_id") == partner_id:
+            return anomaly
+    return None
+
+
+def resolve_anomaly(event_id: str, log_id: Optional[str], resolution_type: str) -> None:
+    """
+    Đánh dấu anomaly đã xử lý xong.
+
+    resolution_type values:
+      "auto_executed"         — AI tự động thực thi
+      "user_approved"         — Người dùng duyệt & thực thi
+      "user_rejected"         — Người dùng từ chối đề xuất
+      "advisory_acknowledged" — Đề xuất văn bản đã được xem xét
+    """
+    from datetime import datetime
+    update_anomaly(event_id, {
+        "status": "resolved",
+        "resolved_at": datetime.utcnow().isoformat(),
+        "resolved_by_log_id": log_id,
+        "resolution_type": resolution_type,
+    })
+
+
 # ── Insight Reports ───────────────────────────────────────────────────────────
 
 def save_report(report_id: str, data: Dict[str, Any]) -> None:

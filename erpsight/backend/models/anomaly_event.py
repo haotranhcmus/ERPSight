@@ -42,5 +42,19 @@ class AnomalyEvent(BaseModel):
     confidence: float = 0.5
     severity: str = "medium"
 
+    # Lifecycle status
+    # "active"     — phát hiện, chưa xử lý
+    # "resolved"   — đã xử lý (bất kỳ cách nào: approved, rejected, auto, advisory)
+    status: str = "active"
+    resolved_at: Optional[datetime] = None
+    resolved_by_log_id: Optional[str] = None  # log_id của action đã giải quyết
+
+    # How it was resolved (populated when status → "resolved")
+    # "auto_executed"          — AI tự động thực thi thành công
+    # "user_approved"          — Người dùng duyệt & thực thi
+    # "user_rejected"          — Người dùng từ chối đề xuất
+    # "advisory_acknowledged"  — Đề xuất chỉ văn bản, đã xem xét
+    resolution_type: Optional[str] = None
+
     # Raw data from detector
     details: Dict[str, Any] = Field(default_factory=dict)
